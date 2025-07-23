@@ -19,9 +19,12 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
+        return userRepository.findByEmail(email)
+                .map(this::buildUserDetails)
                 .orElseThrow(() -> new UsernameNotFoundException("Người dùng không tồn tại với email: " + email));
+    }
 
+    private UserDetails buildUserDetails(User user) {
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
                 .password(user.getPassword())
