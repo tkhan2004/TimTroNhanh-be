@@ -17,70 +17,32 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+import java.util.function.Function;
+
 @Service
+@RequiredArgsConstructor
 public class AuthServiceImp implements AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
-    @Override
-    public AuthResponse login(LoginRequest request) {
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getPassword()
-                    )
-            );
-
-            User user = userRepository.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
-            String accessToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getId());
-
-            return AuthResponse.builder()
-                    .accessToken(accessToken)
-                    .tokenType("Bearer")
-                    .expiresIn(86400L) // 24 hours
-                    .userId(user.getId())
-                    .email(user.getEmail())
-                    .fullName(user.getFullName())
-                    .role(user.getRole())
-                    .build();
-        } catch (Exception e) {
-            throw new RuntimeException("Email hoặc mật khẩu không chính xác");
-        }
+    // Helper methods using Java 8 functional programming
+    private String extractTokenFromBearer(String token) {
+        return Optional.ofNullable(token)
+                .filter(t -> t.startsWith("Bearer "))
+                .map(t -> t.substring(7))
+                .orElse(token);
     }
 
-    @Override
-    @Transactional
-    public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email đã tồn tại");
-        }
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+    }
 
-        User user = User.builder()
-                .fullName(request.getFullName())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .phone(request.getPhone())
-                .avatarUrl(request.getAvatarUrl())
-                .role(request.getRole() != null ? request.getRole() : UserRole.RENTER)
-                .build();
-
-        userRepository.save(user);
-
-        // TODO: Generate token and return
-        String accessToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getId());
-
+    private AuthResponse buildAuthResponse(User user, String accessToken) {
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .tokenType("Bearer")
@@ -92,25 +54,73 @@ public class AuthServiceImp implements AuthService {
                 .build();
     }
 
+    private String generateTokenForUser(User user) {
+        return jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getId());
+    }
+
+    @Override
+    public AuthResponse login(LoginRequest request) {
+        return Optional.of(request)
+                .map(this::authenticateUser)
+                .map(LoginRequest::getEmail)
+                .map(this::findUserByEmail)
+                .map(user -> buildAuthResponse(user, generateTokenForUser(user)))
+                .orElseThrow(() -> new RuntimeException("Email hoặc mật khẩu không chính xác"));
+    }
+
+    private LoginRequest authenticateUser(LoginRequest request) {
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+            return request;
+        } catch (Exception e) {
+            throw new RuntimeException("Email hoặc mật khẩu không chính xác");
+        }
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse register(RegisterRequest request) {
+        return Optional.of(request)
+                .filter(this::isEmailAvailable)
+                .map(this::createUserFromRequest)
+                .map(userRepository::save)
+                .map(user -> buildAuthResponse(user, generateTokenForUser(user)))
+                .orElseThrow(() -> new RuntimeException("Email đã tồn tại"));
+    }
+
+    private boolean isEmailAvailable(RegisterRequest request) {
+        return !userRepository.existsByEmail(request.getEmail());
+    }
+
+    private User createUserFromRequest(RegisterRequest request) {
+        return User.builder()
+                .fullName(request.getFullName())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .phone(request.getPhone())
+                .avatarUrl(request.getAvatarUrl())
+                .role(Optional.ofNullable(request.getRole()).orElse(UserRole.RENTER))
+                .build();
+    }
+
     @Override
     public User validateToken(String token) {
         try {
-            // Remove "Bearer " prefix if present
-            if (token.startsWith("Bearer ")) {
-                token = token.substring(7);
-            }
+            String cleanToken = extractTokenFromBearer(token);
 
-            // Validate token
-            if (!jwtUtil.validateToken(token)) {
+            if (!jwtUtil.validateToken(cleanToken)) {
                 throw new RuntimeException("Token không hợp lệ");
             }
 
-            // Extract username from token
-            String email = jwtUtil.extractUsername(token);
-
-            // Find user by email
-            return userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+            return Optional.of(cleanToken)
+                    .map(jwtUtil::extractUsername)
+                    .map(this::findUserByEmail)
+                    .orElseThrow(() -> new RuntimeException("Token không hợp lệ"));
 
         } catch (Exception e) {
             throw new RuntimeException("Token không hợp lệ: " + e.getMessage());
@@ -120,15 +130,10 @@ public class AuthServiceImp implements AuthService {
     @Override
     public void logout(String token) {
         try {
-            // Remove "Bearer " prefix if present
-            if (token.startsWith("Bearer ")) {
-                token = token.substring(7);
-            }
-
-            // Validate token first
-            if (!jwtUtil.validateToken(token)) {
-                throw new RuntimeException("Token không hợp lệ");
-            }
+            Optional.ofNullable(token)
+                    .map(this::extractTokenFromBearer)
+                    .filter(jwtUtil::validateToken)
+                    .orElseThrow(() -> new RuntimeException("Token không hợp lệ"));
 
             // For stateless JWT, logout is handled on client side by removing token
             // In a production environment, you might want to implement a token blacklist
@@ -145,33 +150,13 @@ public class AuthServiceImp implements AuthService {
     @Override
     public AuthResponse refreshToken(String refreshToken) {
         try {
-            // Remove "Bearer " prefix if present
-            if (refreshToken.startsWith("Bearer ")) {
-                refreshToken = refreshToken.substring(7);
-            }
-
-            // Validate refresh token
-            if (!jwtUtil.validateToken(refreshToken)) {
-                throw new RuntimeException("Refresh token không hợp lệ");
-            }
-
-            // Extract user information from refresh token
-            String email = jwtUtil.extractUsername(refreshToken);
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
-
-            // Generate new access token
-            String newAccessToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getId());
-
-            return AuthResponse.builder()
-                    .accessToken(newAccessToken)
-                    .tokenType("Bearer")
-                    .expiresIn(86400L) // 24 hours
-                    .userId(user.getId())
-                    .email(user.getEmail())
-                    .fullName(user.getFullName())
-                    .role(user.getRole())
-                    .build();
+            return Optional.ofNullable(refreshToken)
+                    .map(this::extractTokenFromBearer)
+                    .filter(jwtUtil::validateToken)
+                    .map(jwtUtil::extractUsername)
+                    .map(this::findUserByEmail)
+                    .map(user -> buildAuthResponse(user, generateTokenForUser(user)))
+                    .orElseThrow(() -> new RuntimeException("Refresh token không hợp lệ"));
 
         } catch (Exception e) {
             throw new RuntimeException("Refresh token thất bại: " + e.getMessage());

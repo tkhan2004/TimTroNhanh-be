@@ -101,4 +101,28 @@ public class JwtUtil {
     public Long extractUserId(String token) {
         return extractClaim(token, claims -> claims.get("userId", Long.class));
     }
+
+    /**
+     * Extracts JWT token from Authorization header
+     * @param authHeader Authorization header value (Bearer token)
+     * @return Clean token without "Bearer " prefix
+     */
+    public String extractTokenFromRequest(String authHeader) {
+        return java.util.Optional.ofNullable(authHeader)
+                .filter(header -> header.startsWith("Bearer "))
+                .map(header -> header.substring(7))
+                .orElseThrow(() -> new IllegalArgumentException("Invalid Authorization header format"));
+    }
+
+    /**
+     * Extracts JWT token from HttpServletRequest
+     * @param request HttpServletRequest containing Authorization header
+     * @return Clean token without "Bearer " prefix
+     */
+    public String extractTokenFromRequest(jakarta.servlet.http.HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        return extractTokenFromRequest(authHeader);
+    }
+
 }
+
