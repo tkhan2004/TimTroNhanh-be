@@ -1,8 +1,8 @@
-# PhongTro247 Backend - Hệ thống tìm kiếm phòng trọ thông minh
+# Tim Tro Nhanh Backend - Hệ thống tìm kiếm phòng trọ thông minh
 
 ## 📋 Mô tả dự án
 
-PhongTro247 là một nền tảng tìm kiếm và cho thuê phòng trọ hiện đại, tích hợp công nghệ AI/ML để cung cấp trải nghiệm tìm kiếm thông minh và cá nhân hóa cho người dùng.
+Tim Tro Nhanh Backend là một nền tảng tìm kiếm và cho thuê phòng trọ hiện đại, tích hợp công nghệ AI/ML để cung cấp trải nghiệm tìm kiếm thông minh và cá nhân hóa cho người dùng.
 
 ## 🚀 Tính năng hiện tại
 
