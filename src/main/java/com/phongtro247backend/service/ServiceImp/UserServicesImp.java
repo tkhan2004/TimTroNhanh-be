@@ -8,6 +8,7 @@ import com.phongtro247backend.repository.UserRepository;
 import com.phongtro247backend.service.AuthService;
 import com.phongtro247backend.service.UserServices;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -16,8 +17,11 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserServicesImp implements UserServices {
 
-    private final UserRepository userRepository;
-    private final AuthService authService;
+    @Autowired
+    private  UserRepository userRepository;
+
+    @Autowired
+    private  AuthService authService;
 
 
     @Override
