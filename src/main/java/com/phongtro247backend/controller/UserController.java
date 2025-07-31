@@ -1,31 +1,25 @@
 package com.phongtro247backend.controller;
 
-import com.phongtro247backend.config.JwtUtil;
+import com.phongtro247backend.util.JwtUtil;
 import com.phongtro247backend.dto.UserRequest;
 import com.phongtro247backend.dto.UserResponse;
-import com.phongtro247backend.entity.User;
 import com.phongtro247backend.payload.ApiResponse;
 import com.phongtro247backend.service.UserServices;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
-    @Autowired
     private  UserServices userServices;
     
-    @Autowired
     private JwtUtil jwtUtil;
 
     @GetMapping("/profile")

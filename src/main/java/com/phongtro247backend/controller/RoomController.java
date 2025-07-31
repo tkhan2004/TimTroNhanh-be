@@ -1,6 +1,6 @@
 package com.phongtro247backend.controller;
 
-import com.phongtro247backend.config.JwtUtil;
+import com.phongtro247backend.util.JwtUtil;
 import com.phongtro247backend.dto.RoomFilterRequest;
 import com.phongtro247backend.dto.RoomRequest;
 import com.phongtro247backend.dto.RoomResponse;
@@ -9,7 +9,6 @@ import com.phongtro247backend.service.RoomService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +20,9 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class RoomController {
 
-    @Autowired
+
     private final RoomService roomService;
 
-    @Autowired
     private final JwtUtil jwtUtil;
 
     /**
@@ -34,16 +32,12 @@ public class RoomController {
     @PostMapping
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<RoomResponse>> createRoom(
-            @Valid @RequestBody RoomRequest request,
-            HttpServletRequest httpRequest) {
+            @Valid @RequestBody RoomRequest request) {
         try {
-            // 1. Extract token from request
-            String token = jwtUtil.extractTokenFromRequest(httpRequest);
+            // 1. Create room (user info from SecurityContext)
+            RoomResponse createdRoom = roomService.createRoom(request);
 
-            // 2. Create room
-            RoomResponse createdRoom = roomService.createRoom(token, request);
-
-            // 3. Return success response
+            // 2. Return success response
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new ApiResponse<>(201, "Tạo phòng thành công", createdRoom));
 
@@ -85,7 +79,7 @@ public class RoomController {
             );
 
             // 3. Get rooms
-            Page<RoomResponse> rooms = roomService.getAllRooms(filterRequest, token);
+            Page<RoomResponse> rooms = roomService.getAllRooms(filterRequest);
 
             // 4. Return success response
             return ResponseEntity.ok(
@@ -111,7 +105,7 @@ public class RoomController {
             String token = jwtUtil.extractTokenFromRequest(httpRequest);
 
             // 2. Get room details
-            RoomResponse room = roomService.getRoomById(id, token);
+            RoomResponse room = roomService.getRoomById(id);
 
             // 3. Return success response
             return ResponseEntity.ok(
@@ -139,7 +133,7 @@ public class RoomController {
             String token = jwtUtil.extractTokenFromRequest(httpRequest);
 
             // 2. Update room
-            RoomResponse updatedRoom = roomService.updateRoom(token, id, request);
+            RoomResponse updatedRoom = roomService.updateRoom(id, request);
 
             // 3. Return success response
             return ResponseEntity.ok(
@@ -166,7 +160,7 @@ public class RoomController {
             String token = jwtUtil.extractTokenFromRequest(httpRequest);
 
             // 2. Delete room
-            roomService.deleteRoom(token, id);
+            roomService.deleteRoom( id);
 
             // 3. Return success response
             return ResponseEntity.ok(
@@ -203,7 +197,7 @@ public class RoomController {
             filterRequest.setSortDirection(sortDirection);
 
             // 3. Get my rooms
-            Page<RoomResponse> rooms = roomService.getMyRooms(token, filterRequest);
+            Page<RoomResponse> rooms = roomService.getMyRooms( filterRequest);
 
             // 4. Return success response
             return ResponseEntity.ok(
@@ -230,7 +224,7 @@ public class RoomController {
             String token = jwtUtil.extractTokenFromRequest(httpRequest);
 
             // 2. Toggle room status
-            RoomResponse updatedRoom = roomService.toggleRoomStatus(token, id);
+            RoomResponse updatedRoom = roomService.toggleRoomStatus(id);
 
             // 3. Return success response
             return ResponseEntity.ok(

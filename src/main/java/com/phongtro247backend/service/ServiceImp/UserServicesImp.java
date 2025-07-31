@@ -17,10 +17,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserServicesImp implements UserServices {
 
-    @Autowired
     private  UserRepository userRepository;
 
-    @Autowired
     private  AuthService authService;
 
 
