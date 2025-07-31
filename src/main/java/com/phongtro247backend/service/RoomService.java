@@ -8,15 +8,17 @@ import org.springframework.data.domain.Page;
 public interface RoomService {
 
     // CRUD operations
-    RoomResponse createRoom(String token, RoomRequest request);
-    RoomResponse getRoomById(Long id, String token);
-    RoomResponse updateRoom(String token, Long id, RoomRequest request);
-    void deleteRoom(String token, Long id);
+    RoomResponse createRoom(RoomRequest request);
+    RoomResponse getRoomById(Long id);
+    RoomResponse getRoomByIdForGuest(Long id); // For non-authenticated users
+    RoomResponse updateRoom(Long id, RoomRequest request);
+    void deleteRoom(Long id);
 
     // Search and filter
-    Page<RoomResponse> getAllRooms(RoomFilterRequest filterRequest, String token);
-    Page<RoomResponse> getMyRooms(String token, RoomFilterRequest filterRequest);
+    Page<RoomResponse> getAllRooms(RoomFilterRequest filterRequest);
+    Page<RoomResponse> getAllRoomsForGuest(RoomFilterRequest filterRequest); // For non-authenticated users
+    Page<RoomResponse> getMyRooms(RoomFilterRequest filterRequest);
 
     // Utility methods
-    RoomResponse toggleRoomStatus(String token, Long id);
+    RoomResponse toggleRoomStatus(Long id);
 }

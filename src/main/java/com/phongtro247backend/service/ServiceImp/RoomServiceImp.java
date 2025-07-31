@@ -5,8 +5,8 @@ import com.phongtro247backend.entity.*;
 import com.phongtro247backend.entity.enums.RoomStatus;
 import com.phongtro247backend.entity.enums.UserRole;
 import com.phongtro247backend.repository.*;
-import com.phongtro247backend.service.AuthService;
 import com.phongtro247backend.service.RoomService;
+import com.phongtro247backend.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,16 +24,20 @@ import java.util.Optional;
 public class RoomServiceImp implements RoomService {
 
     private final RoomRepository roomRepository;
+
     private final RoomUtilityRepository roomUtilityRepository;
+
     private final RoomImageRepository roomImageRepository;
+
     private final RoomPostUtilityRepository roomPostUtilityRepository;
-    private final AuthService authService;
+
+    private final SecurityUtil securityUtil;
     
     @Override
     @Transactional
-    public RoomResponse createRoom(String token, RoomRequest request) {
-        // 1. Validate user
-        User currentUser = authService.validateToken(token);
+    public RoomResponse createRoom(RoomRequest request) {
+        // 1. Get current user from security context
+        User currentUser = securityUtil.getCurrentUser();
         if (currentUser.getRole() != UserRole.OWNER) {
             throw new RuntimeException("Chỉ chủ nhà mới có thể đăng tin cho thuê phòng");
         }
@@ -91,30 +95,32 @@ public class RoomServiceImp implements RoomService {
     }
 
     @Override
-    public RoomResponse getRoomById(Long id, String token) {
+    public RoomResponse getRoomById(Long id) {
         // 1. Find room
         Room room = roomRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng với ID: " + id));
 
-        // 2. Get current user (optional)
-        User currentUser = null;
-        if (token != null && !token.trim().isEmpty()) {
-            try {
-                currentUser = authService.validateToken(token);
-            } catch (Exception e) {
-                // Token invalid, continue without user
-                currentUser = null;
-            }
-        }
+        // 2. Get current user (authenticated user)
+        User currentUser = securityUtil.getCurrentUser();
 
         return buildRoomResponse(room, currentUser);
     }
 
     @Override
+    public RoomResponse getRoomByIdForGuest(Long id) {
+        // 1. Find room
+        Room room = roomRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng với ID: " + id));
+
+        // 2. No current user for guest
+        return buildRoomResponse(room, null);
+    }
+
+    @Override
     @Transactional
-    public RoomResponse updateRoom(String token, Long id, RoomRequest request) {
-        // 1. Validate user and find room
-        User currentUser = authService.validateToken(token);
+    public RoomResponse updateRoom(Long id, RoomRequest request) {
+        // 1. Get current user and find room
+        User currentUser = securityUtil.getCurrentUser();
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng với ID: " + id));
 
@@ -205,8 +211,8 @@ public class RoomServiceImp implements RoomService {
 
     @Override
     @Transactional
-    public void deleteRoom(String token, Long id) {
-        User currentUser = authService.validateToken(token);
+    public void deleteRoom(Long id) {
+        User currentUser = securityUtil.getCurrentUser();
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng với ID: " + id));
 
@@ -219,7 +225,7 @@ public class RoomServiceImp implements RoomService {
     }
 
     @Override
-    public Page<RoomResponse> getAllRooms(RoomFilterRequest filterRequest, String token) {
+    public Page<RoomResponse> getAllRooms(RoomFilterRequest filterRequest) {
         // 1. Create pagination
         int page = (filterRequest.getPage() != null && filterRequest.getPage() >= 0) ?
                    filterRequest.getPage() : 0;
@@ -235,16 +241,58 @@ public class RoomServiceImp implements RoomService {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        // 2. Get current user (optional)
-        User currentUser = null;
-        if (token != null && !token.trim().isEmpty()) {
-            try {
-                currentUser = authService.validateToken(token);
-            } catch (Exception e) {
-                // Token invalid, continue without user
-                currentUser = null;
-            }
+        // 2. Get current user (authenticated user)
+        User currentUser = securityUtil.getCurrentUser();
+
+        // 3. Get rooms based on filters
+        Page<Room> rooms;
+        if (filterRequest.getUtilityIds() != null && !filterRequest.getUtilityIds().isEmpty()) {
+            // Filter by utilities
+            rooms = roomRepository.findByUtilityIds(
+                filterRequest.getUtilityIds(),
+                filterRequest.getUtilityIds().size(),
+                pageable
+            );
+        } else {
+            // Use general filters
+            rooms = roomRepository.findRoomsWithFilters(
+                filterRequest.getKeyword(),
+                filterRequest.getCity(),
+                filterRequest.getDistrict(),
+                filterRequest.getWard(),
+                filterRequest.getMinPrice(),
+                filterRequest.getMaxPrice(),
+                filterRequest.getMinArea(),
+                filterRequest.getMaxArea(),
+                filterRequest.getStatus(),
+                filterRequest.getOwnerId(),
+                pageable
+            );
         }
+
+        // 4. Convert to response
+        return rooms.map(room -> buildRoomResponse(room, currentUser));
+    }
+
+    @Override
+    public Page<RoomResponse> getAllRoomsForGuest(RoomFilterRequest filterRequest) {
+        // 1. Create pagination
+        int page = (filterRequest.getPage() != null && filterRequest.getPage() >= 0) ?
+                   filterRequest.getPage() : 0;
+        int size = (filterRequest.getSize() != null && filterRequest.getSize() > 0 && filterRequest.getSize() <= 100) ?
+                   filterRequest.getSize() : 10;
+        String sortBy = (filterRequest.getSortBy() != null && !filterRequest.getSortBy().trim().isEmpty()) ?
+                        filterRequest.getSortBy() : "createdAt";
+
+        Sort.Direction direction = Sort.Direction.DESC;
+        if (filterRequest.getSortDirection() != null && filterRequest.getSortDirection().equalsIgnoreCase("asc")) {
+            direction = Sort.Direction.ASC;
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        // 2. No current user for guest
+        User currentUser = null;
 
         // 3. Get rooms based on filters
         Page<Room> rooms;
@@ -278,9 +326,9 @@ public class RoomServiceImp implements RoomService {
     }
 
     @Override
-    public Page<RoomResponse> getMyRooms(String token, RoomFilterRequest filterRequest) {
-        // 1. Validate user
-        User currentUser = authService.validateToken(token);
+    public Page<RoomResponse> getMyRooms(RoomFilterRequest filterRequest) {
+        // 1. Get current user
+        User currentUser = securityUtil.getCurrentUser();
         if (currentUser.getRole() != UserRole.OWNER) {
             throw new RuntimeException("Chỉ chủ nhà mới có thể xem danh sách phòng của mình");
         }
@@ -307,9 +355,9 @@ public class RoomServiceImp implements RoomService {
 
     @Override
     @Transactional
-    public RoomResponse toggleRoomStatus(String token, Long id) {
-        // 1. Validate user and find room
-        User currentUser = authService.validateToken(token);
+    public RoomResponse toggleRoomStatus(Long id) {
+        // 1. Get current user and find room
+        User currentUser = securityUtil.getCurrentUser();
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng với ID: " + id));
 
