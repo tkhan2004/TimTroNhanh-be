@@ -1,7 +1,7 @@
 package com.phongtro247backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.phongtro247backend.config.JwtUtil;
+import com.phongtro247backend.util.JwtUtil;
 import com.phongtro247backend.dto.RoomRequest;
 import com.phongtro247backend.dto.RoomResponse;
 import com.phongtro247backend.entity.enums.RoomStatus;

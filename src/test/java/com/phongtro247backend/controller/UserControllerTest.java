@@ -1,6 +1,6 @@
 package com.phongtro247backend.controller;
 
-import com.phongtro247backend.config.JwtUtil;
+import com.phongtro247backend.util.JwtUtil;
 import com.phongtro247backend.dto.UserRequest;
 import com.phongtro247backend.dto.UserResponse;
 import com.phongtro247backend.service.UserServices;
