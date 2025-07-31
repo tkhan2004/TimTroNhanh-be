@@ -1,5 +1,6 @@
 package com.phongtro247backend.config;
 
+import com.phongtro247backend.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
