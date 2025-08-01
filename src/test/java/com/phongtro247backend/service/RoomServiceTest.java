@@ -9,6 +9,7 @@ import com.phongtro247backend.entity.enums.RoomStatus;
 import com.phongtro247backend.entity.enums.UserRole;
 import com.phongtro247backend.repository.*;
 import com.phongtro247backend.service.ServiceImp.RoomServiceImp;
+import com.phongtro247backend.util.SecurityUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +42,7 @@ class RoomServiceTest {
     private RoomPostUtilityRepository roomPostUtilityRepository;
 
     @Mock
-    private AuthService authService;
+    private SecurityUtil securityUtil;
 
     @InjectMocks
     private RoomServiceImp roomService;
@@ -117,16 +118,14 @@ class RoomServiceTest {
     @Test
     void testCreateRoom_Success() {
         // Given
-        String validToken = "valid.jwt.token";
-        
-        when(authService.validateToken(validToken)).thenReturn(ownerUser);
+        when(securityUtil.getCurrentUser()).thenReturn(ownerUser);
         when(roomRepository.save(any(Room.class))).thenReturn(savedRoom);
         when(roomUtilityRepository.findByIdIn(roomRequest.getUtilityIds())).thenReturn(utilities);
         when(roomPostUtilityRepository.findByRoom(savedRoom)).thenReturn(Arrays.asList());
         when(roomImageRepository.findByRoom(savedRoom)).thenReturn(Arrays.asList());
 
         // When
-        RoomResponse result = roomService.createRoom(validToken, roomRequest);
+        RoomResponse result = roomService.createRoom(roomRequest);
 
         // Then
         assertNotNull(result);
@@ -151,7 +150,7 @@ class RoomServiceTest {
         assertEquals(ownerUser.getRole(), result.getOwner().getRole());
 
         // Verify method calls
-        verify(authService).validateToken(validToken);
+        verify(securityUtil).getCurrentUser();
         verify(roomRepository).save(any(Room.class));
         verify(roomUtilityRepository).findByIdIn(roomRequest.getUtilityIds());
         verify(roomPostUtilityRepository, times(2)).save(any());
@@ -161,13 +160,11 @@ class RoomServiceTest {
     @Test
     void testCreateRoom_RenterUserShouldFail() {
         // Given
-        String validToken = "valid.jwt.token";
-        
-        when(authService.validateToken(validToken)).thenReturn(renterUser);
+        when(securityUtil.getCurrentUser()).thenReturn(renterUser);
 
         // When & Then
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            roomService.createRoom(validToken, roomRequest);
+            roomService.createRoom(roomRequest);
         });
 
         assertEquals("Chỉ chủ nhà mới có thể đăng tin cho thuê phòng", exception.getMessage());
@@ -177,20 +174,18 @@ class RoomServiceTest {
     }
 
     @Test
-    void testCreateRoom_InvalidTokenShouldFail() {
+    void testCreateRoom_SecurityUtilThrowsException() {
         // Given
-        String invalidToken = "invalid.jwt.token";
-        
-        when(authService.validateToken(invalidToken))
-                .thenThrow(new RuntimeException("Token không hợp lệ"));
+        when(securityUtil.getCurrentUser())
+                .thenThrow(new RuntimeException("Người dùng chưa đăng nhập"));
 
         // When & Then
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            roomService.createRoom(invalidToken, roomRequest);
+            roomService.createRoom(roomRequest);
         });
 
-        assertEquals("Token không hợp lệ", exception.getMessage());
-        
+        assertEquals("Người dùng chưa đăng nhập", exception.getMessage());
+
         // Verify that room was not saved
         verify(roomRepository, never()).save(any(Room.class));
     }
@@ -198,7 +193,6 @@ class RoomServiceTest {
     @Test
     void testCreateRoom_WithoutUtilitiesAndImages() {
         // Given
-        String validToken = "valid.jwt.token";
         RoomRequest requestWithoutExtras = RoomRequest.builder()
                 .title("Phòng trọ đơn giản")
                 .description("Phòng trọ cơ bản")
@@ -210,13 +204,13 @@ class RoomServiceTest {
                 .ward("Phường An Phú")
                 .build();
         
-        when(authService.validateToken(validToken)).thenReturn(ownerUser);
+        when(securityUtil.getCurrentUser()).thenReturn(ownerUser);
         when(roomRepository.save(any(Room.class))).thenReturn(savedRoom);
         when(roomPostUtilityRepository.findByRoom(savedRoom)).thenReturn(Arrays.asList());
         when(roomImageRepository.findByRoom(savedRoom)).thenReturn(Arrays.asList());
 
         // When
-        RoomResponse result = roomService.createRoom(validToken, requestWithoutExtras);
+        RoomResponse result = roomService.createRoom(requestWithoutExtras);
 
         // Then
         assertNotNull(result);
@@ -231,15 +225,13 @@ class RoomServiceTest {
     @Test
     void testCreateRoom_InvalidUtilitiesShouldFail() {
         // Given
-        String validToken = "valid.jwt.token";
-        
-        when(authService.validateToken(validToken)).thenReturn(ownerUser);
+        when(securityUtil.getCurrentUser()).thenReturn(ownerUser);
         when(roomUtilityRepository.findByIdIn(roomRequest.getUtilityIds()))
                 .thenReturn(Arrays.asList(utilities.get(0))); // Only return 1 utility instead of 2
 
         // When & Then
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            roomService.createRoom(validToken, roomRequest);
+            roomService.createRoom(roomRequest);
         });
 
         assertEquals("Một số tiện ích không tồn tại", exception.getMessage());
