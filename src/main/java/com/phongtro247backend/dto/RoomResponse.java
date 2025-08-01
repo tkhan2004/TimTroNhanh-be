@@ -1,6 +1,7 @@
 package com.phongtro247backend.dto;
 
 import com.phongtro247backend.entity.enums.RoomStatus;
+import com.phongtro247backend.entity.enums.RoomType;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -27,6 +28,7 @@ public class RoomResponse {
     private Double latitude;
     private Double longitude;
     private RoomStatus status;
+    private RoomType roomType;
     private LocalDateTime createdAt;
 
     // Thông tin chủ nhà

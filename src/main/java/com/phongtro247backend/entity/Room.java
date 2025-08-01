@@ -1,6 +1,7 @@
 package com.phongtro247backend.entity;
 
 import com.phongtro247backend.entity.enums.RoomStatus;
+import com.phongtro247backend.entity.enums.RoomType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -61,7 +62,12 @@ public class Room {
     @Column(name = "status", length = 20)
     @Builder.Default
     private RoomStatus status = RoomStatus.AVAILABLE;
-    
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "room_type", length = 20)
+    @Builder.Default
+    private RoomType roomType = RoomType.PHONG_TRO;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -1,6 +1,7 @@
 package com.phongtro247backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.phongtro247backend.dto.RoomFilterRequest;
 import com.phongtro247backend.util.JwtUtil;
 import com.phongtro247backend.dto.RoomRequest;
 import com.phongtro247backend.dto.RoomResponse;
@@ -10,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
@@ -34,10 +35,10 @@ class RoomControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private RoomService roomService;
 
-    @MockBean
+    @MockitoBean
     private JwtUtil jwtUtil;
 
     @Autowired
@@ -81,7 +82,7 @@ class RoomControllerTest {
         // Given
         String token = "valid.jwt.token";
         when(jwtUtil.extractTokenFromRequest(any(jakarta.servlet.http.HttpServletRequest.class))).thenReturn(token);
-        when(roomService.createRoom(eq(token), any(RoomRequest.class))).thenReturn(roomResponse);
+        when(roomService.createRoom(any(RoomRequest.class))).thenReturn(roomResponse);
 
         // When & Then
         mockMvc.perform(post("/api/rooms")
@@ -113,7 +114,7 @@ class RoomControllerTest {
         Page<RoomResponse> roomPage = new PageImpl<>(roomList);
         
         when(jwtUtil.extractTokenFromRequest(any(jakarta.servlet.http.HttpServletRequest.class))).thenReturn(null);
-        when(roomService.getAllRooms(any(), isNull())).thenReturn(roomPage);
+        when(roomService.getAllRooms(any(RoomFilterRequest.class))).thenReturn(roomPage);
 
         // When & Then
         mockMvc.perform(get("/api/rooms")
@@ -131,7 +132,7 @@ class RoomControllerTest {
         // Given
         Long roomId = 1L;
         when(jwtUtil.extractTokenFromRequest(any(jakarta.servlet.http.HttpServletRequest.class))).thenReturn(null);
-        when(roomService.getRoomById(eq(roomId), isNull())).thenReturn(roomResponse);
+        when(roomService.getRoomById(eq(roomId))).thenReturn(roomResponse);
 
         // When & Then
         mockMvc.perform(get("/api/rooms/{id}", roomId))
@@ -147,7 +148,7 @@ class RoomControllerTest {
         // Given
         Long roomId = 999L;
         when(jwtUtil.extractTokenFromRequest(any(jakarta.servlet.http.HttpServletRequest.class))).thenReturn(null);
-        when(roomService.getRoomById(eq(roomId), isNull()))
+        when(roomService.getRoomById(eq(roomId)))
                 .thenThrow(new RuntimeException("Không tìm thấy phòng với ID: " + roomId));
 
         // When & Then
@@ -163,7 +164,7 @@ class RoomControllerTest {
         Long roomId = 1L;
         String token = "valid.jwt.token";
         when(jwtUtil.extractTokenFromRequest(any(jakarta.servlet.http.HttpServletRequest.class))).thenReturn(token);
-        when(roomService.updateRoom(eq(token), eq(roomId), any(RoomRequest.class)))
+        when(roomService.updateRoom(eq(roomId), any(RoomRequest.class)))
                 .thenReturn(roomResponse);
 
         // When & Then
@@ -201,7 +202,7 @@ class RoomControllerTest {
         Page<RoomResponse> roomPage = new PageImpl<>(roomList);
         
         when(jwtUtil.extractTokenFromRequest(any(jakarta.servlet.http.HttpServletRequest.class))).thenReturn(token);
-        when(roomService.getMyRooms(eq(token), any())).thenReturn(roomPage);
+        when(roomService.getMyRooms(any(RoomFilterRequest.class))).thenReturn(roomPage);
 
         // When & Then
         mockMvc.perform(get("/api/rooms/my-rooms"))
@@ -219,7 +220,7 @@ class RoomControllerTest {
         roomResponse.setStatus(RoomStatus.RENTED);
         
         when(jwtUtil.extractTokenFromRequest(any(jakarta.servlet.http.HttpServletRequest.class))).thenReturn(token);
-        when(roomService.toggleRoomStatus(eq(token), eq(roomId))).thenReturn(roomResponse);
+        when(roomService.toggleRoomStatus(eq(roomId))).thenReturn(roomResponse);
 
         // When & Then
         mockMvc.perform(patch("/api/rooms/{id}/toggle-status", roomId)

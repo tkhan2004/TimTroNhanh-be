@@ -1,5 +1,6 @@
 package com.phongtro247backend.controller;
 
+import com.cloudinary.Api;
 import com.phongtro247backend.dto.RoomResponse;
 import com.phongtro247backend.payload.ApiResponse;
 import com.phongtro247backend.service.FavoriteService;
@@ -55,4 +56,56 @@ public class FavoriteController {
                     .body(new ApiResponse<>(400, e.getMessage(), null));
         }
     }
+
+    @GetMapping("/my-favorites")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Page<RoomResponse>>> getFavoriteRooms(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        try {
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection), sortBy));
+            Page<RoomResponse> favoriteRooms = favoriteService.getFavoriteRooms(pageable);
+
+            return ResponseEntity.ok(
+                new ApiResponse<>(200, "Lấy danh sách phòng yêu thích thành công", favoriteRooms)
+            );
+        }catch (Exception e) {
+            return  ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(400, e.getMessage(), null));
+        }
+    }
+
+    @PostMapping("/{roomId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<?>> addToFavorites(
+            @PathVariable Long roomId) {
+        try {
+            favoriteService.addToFavorites(roomId);
+            return ResponseEntity.ok(
+                new ApiResponse<>(200, "Thêm vào yêu thích thành công", null)
+            );
+        }catch (Exception e) {
+            return  ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(400, e.getMessage(), null));
+        }
+    }
+
+    @DeleteMapping("/{roomId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<?>> removeFromFavorites(
+            @PathVariable Long roomId){
+        try {
+            favoriteService.removeFromFavorites(roomId);
+            return ResponseEntity.ok(
+                new ApiResponse<>(200, "Xóa khỏi yêu thích thành công", null)
+            );
+        }catch (Exception e) {
+            return  ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(400, e.getMessage(), null));
+        }
+    }
+
+
 }

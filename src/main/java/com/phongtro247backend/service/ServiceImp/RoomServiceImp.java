@@ -3,6 +3,7 @@ package com.phongtro247backend.service.ServiceImp;
 import com.phongtro247backend.dto.*;
 import com.phongtro247backend.entity.*;
 import com.phongtro247backend.entity.enums.RoomStatus;
+import com.phongtro247backend.entity.enums.RoomType;
 import com.phongtro247backend.entity.enums.UserRole;
 import com.phongtro247backend.repository.*;
 import com.phongtro247backend.service.RoomService;
@@ -60,6 +61,12 @@ public class RoomServiceImp implements RoomService {
             room.setStatus(request.getStatus());
         } else {
             room.setStatus(RoomStatus.AVAILABLE);
+        }
+
+        if (request.getRoomType() != null) {
+            room.setRoomType(request.getRoomType());
+        } else {
+            room.setRoomType(RoomType.PHONG_TRO);
         }
 
         room = roomRepository.save(room);
@@ -163,6 +170,9 @@ public class RoomServiceImp implements RoomService {
         }
         if (request.getStatus() != null) {
             room.setStatus(request.getStatus());
+        }
+        if (request.getRoomType() != null) {
+            room.setRoomType(request.getRoomType());
         }
 
         room = roomRepository.save(room);
@@ -435,6 +445,7 @@ public class RoomServiceImp implements RoomService {
         response.setLatitude(room.getLatitude());
         response.setLongitude(room.getLongitude());
         response.setStatus(room.getStatus());
+        response.setRoomType(room.getRoomType());
         response.setCreatedAt(room.getCreatedAt());
         response.setOwner(ownerResponse);
         response.setUtilities(utilities);

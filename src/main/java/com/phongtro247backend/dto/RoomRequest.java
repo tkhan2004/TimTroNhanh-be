@@ -1,6 +1,7 @@
 package com.phongtro247backend.dto;
 
 import com.phongtro247backend.entity.enums.RoomStatus;
+import com.phongtro247backend.entity.enums.RoomType;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
@@ -53,10 +54,12 @@ public class RoomRequest {
     private Double longitude;
     
     private RoomStatus status;
-    
+
+    private RoomType roomType;
+
     // Danh sách ID của các tiện ích
     private List<Long> utilityIds;
-    
+
     // Danh sách URL hình ảnh
     private List<String> imageUrls;
 }
