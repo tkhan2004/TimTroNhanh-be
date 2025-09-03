@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class UserController {
 
-    private  UserServices userServices;
+    private final  UserServices userServices;
     
-    private JwtUtil jwtUtil;
+    private final JwtUtil jwtUtil;
 
     @GetMapping("/profile")
     @PreAuthorize("hasAnyRole('RENTER', 'OWNER', 'ADMIN')")
