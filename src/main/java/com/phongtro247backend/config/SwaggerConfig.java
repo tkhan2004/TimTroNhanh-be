@@ -14,14 +14,11 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
-
 @Configuration
 public class SwaggerConfig {
 
     @Value("${server.port:8080}")
     private String serverPort;
-
-
 
     @Bean
     public OpenAPI customOpenAPI() {
@@ -29,10 +26,10 @@ public class SwaggerConfig {
                 .info(apiInfo())
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:" + serverPort )
+                                .url("http://localhost:" + serverPort)
                                 .description("Development Server"),
                         new Server()
-                                .url("https://api.phongtro247.com" )
+                                .url("https://api.phongtro247.com")
                                 .description("Production Server")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
