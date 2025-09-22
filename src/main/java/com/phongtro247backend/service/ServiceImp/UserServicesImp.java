@@ -17,9 +17,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserServicesImp implements UserServices {
 
-    private  UserRepository userRepository;
+    private final  UserRepository userRepository;
 
-    private  AuthService authService;
+    private final AuthService authService;
 
 
     @Override
