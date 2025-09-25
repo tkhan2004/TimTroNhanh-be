@@ -87,6 +87,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints - no authentication required
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/google/**").permitAll()
                         .requestMatchers("/public/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/test/public").permitAll()
