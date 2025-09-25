@@ -2,6 +2,10 @@ package com.phongtro247backend.service.ServiceImp;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
 import com.phongtro247backend.dto.AuthResponse;
 import com.phongtro247backend.entity.User;
 import com.phongtro247backend.entity.enums.UserRole;
@@ -21,6 +25,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.Collections;
 import java.util.UUID;
 
 @Service
@@ -43,6 +50,10 @@ public class GoogleAuthServiceIml implements GoogleAuthService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final PasswordEncoder passwordEncoder;
+
+    private final NetHttpTransport transport = new NetHttpTransport();
+
+    private final JacksonFactory jsonFactory = JacksonFactory.getDefaultInstance();
 
     @Override
     public String getGoogleLoginUrl() {
@@ -118,5 +129,42 @@ public class GoogleAuthServiceIml implements GoogleAuthService {
                 .fullName(user.getFullName())
                 .role(user.getRole())
                 .build();
+    }
+
+    @Override
+    public User verifyGoogleToken(String idToken) {
+
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(transport, jsonFactory)
+                .setAudience(Collections.singletonList(clientId))
+                .build();
+
+        GoogleIdToken googleIdToken = null;
+        try {
+            googleIdToken = verifier.verify(idToken);
+        } catch (GeneralSecurityException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        if (googleIdToken == null) {
+            throw new RuntimeException("Invalid ID token.");
+        }
+
+        GoogleIdToken.Payload payload = googleIdToken.getPayload();
+        String email = payload.getEmail();
+        String name = (String) payload.get("name");
+        String picture = (String) payload.get("picture");
+
+        // Tìm user trong DB, nếu chưa có thì tạo mới
+        return userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+                    newUser.setFullName(name);
+                    newUser.setAvatarUrl(picture);
+                    newUser.setRole(UserRole.RENTER);
+                    return userRepository.save(newUser);
+                });
     }
 }
