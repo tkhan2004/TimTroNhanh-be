@@ -4,21 +4,23 @@ spring:
       client:
         registration:
           google:
-            client-id: 270436218674-srvfetl5ks8dridnldjj532js5csags7
-            client-secret: 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
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
             redirect-uri: http://localhost:8080/api/auth/google/callback
             scope:
               - email
               - profile
 
   # Database Configuration
-  datasource:
-    url: jdbc:postgresql://localhost:5433/phongtro
-    username: postgres
-    password: 24042004
-    driver-class-name: org.postgresql.Driver
+  spring:
+    datasource:
+      url: ${SPRING_DATASOURCE_URL}
+      username: ${SPRING_DATASOURCE_USERNAME}
+      password: ${SPRING_DATASOURCE_PASSWORD}
+      driver-class-name: org.postgresql.Driver
 
-  # JPA/Hibernate Configuration
+
+    # JPA/Hibernate Configuration
   jpa:
     hibernate:
       ddl-auto: update # Options: create, create-drop, update, validate, none
@@ -88,7 +90,7 @@ springdoc:
 # Application specific properties
 app:
   jwt:
-    secret: ${JWT_SECRET:winrn4J+9L4swlKwKkk4HhoNLMJxb/MGR/T54+mo95c=}
+    secret: ${JWT_SECRET}
     expiration: 86400000 # 24 hours in milliseconds
   upload:
     path: ${UPLOAD_PATH:./uploads}
