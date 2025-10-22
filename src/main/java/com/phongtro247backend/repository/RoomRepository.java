@@ -2,6 +2,7 @@ package com.phongtro247backend.repository;
 
 import com.phongtro247backend.entity.Room;
 import com.phongtro247backend.entity.User;
+import com.phongtro247backend.entity.enums.ReportStatus;
 import com.phongtro247backend.entity.enums.RoomStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -100,4 +102,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
            "LEFT JOIN FETCH r.owner " +
            "WHERE r.id = :id")
     Optional<Room> findByIdWithDetails(@Param("id") Long id);
+
+    long countByCreatedAtAfter(LocalDateTime createdAt);
+
 }
