@@ -18,6 +18,8 @@ services:
     container_name: phongtro247-app
     depends_on:
       - postgres-db
+    env_file:
+      - .env
     environment:
       POSTGRES_HOST: postgres-db
       POSTGRES_PORT: 5432
